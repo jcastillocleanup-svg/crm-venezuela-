@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM Venezuela</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#1a1a1a;font-size:14px}
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:220px;min-width:220px;background:#f0eeea;border-right:0.5px solid #ddd;display:flex;flex-direction:column;padding:1rem 0}
+.logo{padding:0 1rem 1rem;border-bottom:0.5px solid #ddd;margin-bottom:0.5rem}
+.logo h2{font-size:15px;font-weight:500;display:flex;align-items:center;gap:8px}
+.logo p{font-size:11px;color:#888;margin-top:3px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 1rem;font-size:13px;cursor:pointer;color:#666;transition:all 0.15s;border-right:2px solid transparent}
+.nav-item:hover{background:#fff;color:#1a1a1a}
+.nav-item.active{background:#fff;color:#1a1a1a;font-weight:500;border-right-color:#1D9E75}
+.nav-icon{font-size:16px}
+.sidebar-footer{margin-top:auto;padding:1rem;border-top:0.5px solid #ddd}
+.online-row{display:flex;align-items:center;gap:6px;font-size:12px;color:#555;margin-top:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:#1D9E75;display:inline-block}
+
+/* MAIN */
+.main{flex:1;overflow:auto;background:#f5f5f3}
+.topbar{background:#fff;border-bottom:0.5px solid #e0e0e0;padding:12px 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.topbar h1{font-size:15px;font-weight:500}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.btn{padding:7px 14px;border-radius:8px;border:0.5px solid #ccc;font-size:13px;cursor:pointer;background:#fff;color:#1a1a1a;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s}
+.btn:hover{background:#f5f5f3}
+.btn-primary{background:#1D9E75;color:#fff;border-color:#1D9E75}
+.btn-primary:hover{background:#0F6E56}
+.btn-danger{background:#fff;color:#A32D2D;border-color:#A32D2D}
+.btn-danger:hover{background:#FCEBEB}
+.content{padding:1.5rem}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
+.stat-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:1rem}
+.stat-label{font-size:11px;color:#888;margin-bottom:6px}
+.stat-value{font-size:22px;font-weight:500}
+.stat-sub{font-size:11px;color:#888;margin-top:4px}
+
+/* TABLE CARD */
+.section-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;margin-bottom:1.5rem;overflow:hidden}
+.section-header{padding:14px 1.25rem;border-bottom:0.5px solid #e0e0e0;display:flex;align-items:center;justify-content:space-between}
+.section-header h3{font-size:14px;font-weight:500}
+.filters{display:flex;gap:8px;padding:10px 1.25rem;border-bottom:0.5px solid #e0e0e0;flex-wrap:wrap;align-items:center}
+.filter-btn{padding:4px 12px;border-radius:20px;border:0.5px solid #ccc;font-size:12px;cursor:pointer;background:transparent;color:#666;transition:all 0.15s}
+.filter-btn.active{background:#1D9E75;color:#fff;border-color:#1D9E75}
+.search-box{flex:1;min-width:180px;padding:6px 12px;border-radius:8px;border:0.5px solid #ccc;font-size:13px;background:#f5f5f3;color:#1a1a1a;outline:none}
+.search-box:focus{border-color:#1D9E75}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:9px 1rem;text-align:left;font-size:11px;font-weight:500;color:#888;border-bottom:0.5px solid #e0e0e0;white-space:nowrap}
+td{padding:9px 1rem;border-bottom:0.5px solid #f0f0f0;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.data-row:hover td{background:#f9f9f7;cursor:pointer}
+.client-name{font-weight:500;font-size:13px}
+.client-city{font-size:11px;color:#888}
+.avatar{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;background:#E1F5EE;color:#0F6E56;margin-right:8px;vertical-align:middle;flex-shrink:0}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.badge-a{background:#EAF3DE;color:#3B6D11}
+.badge-b{background:#FAEEDA;color:#854F0B}
+.badge-c{background:#FCEBEB;color:#A32D2D}
+.badge-pend{background:#FAEEDA;color:#854F0B}
+.badge-pag{background:#EAF3DE;color:#3B6D11}
+.badge-bucal{background:#E1F5EE;color:#085041}
+.badge-insumos{background:#EEEDFE;color:#3C3489}
+.badge-ambos{background:#E6F1FB;color:#185FA5}
+.tag{display:inline-block;padding:3px 8px;border-radius:6px;font-size:11px;border:0.5px solid #ddd;color:#666;white-space:nowrap}
+.amount{font-weight:500;font-family:monospace;font-size:13px}
+.empty-state{padding:3rem;text-align:center;color:#888;font-size:13px}
+
+/* PANEL */
+.panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.25);z-index:100}
+.panel-overlay.open{display:block}
+.panel{position:fixed;right:0;top:0;height:100%;width:500px;background:#fff;overflow-y:auto;padding:1.5rem;border-left:0.5px solid #e0e0e0;box-shadow:-4px 0 20px rgba(0,0,0,0.08)}
+.panel-title{font-size:16px;font-weight:500;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between}
+.field-group{margin-bottom:1rem}
+.field-label{font-size:11px;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}
+.field-value{font-size:14px;color:#1a1a1a}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.divider{border:none;border-top:0.5px solid #e0e0e0;margin:1rem 0}
+.notes-box{background:#f5f5f3;border-radius:8px;padding:10px 12px;font-size:13px;color:#555;line-height:1.6}
+.form-input{width:100%;padding:8px 12px;border:0.5px solid #ccc;border-radius:8px;font-size:13px;background:#fff;color:#1a1a1a;outline:none;transition:border-color 0.15s}
+.form-input:focus{border-color:#1D9E75}
+select.form-input{cursor:pointer}
+textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:11px;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}
+
+/* MAPA */
+.mapa-container{padding:1.25rem}
+.region-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1rem}
+.region-card{background:#f5f5f3;border-radius:10px;padding:12px;border:0.5px solid #e0e0e0}
+.region-name{font-size:12px;font-weight:500;margin-bottom:4px}
+.region-count{font-size:22px;font-weight:500;color:#1D9E75}
+.region-monto{font-size:11px;color:#888;margin-top:2px}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;padding:3rem;color:#888;gap:8px;font-size:13px}
+.spinner{width:18px;height:18px;border:2px solid #e0e0e0;border-top-color:#1D9E75;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TOAST */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1a1a1a;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:200;opacity:0;transition:opacity 0.3s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* FACTURAS */
+.overdue{color:#A32D2D;font-weight:500}
+.warning{color:#854F0B}
+.ok{color:#3B6D11}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">
+      <h2>🏪 Mi CRM</h2>
+      <p>Venezuela · 2 usuarios activos</p>
+    </div>
+    <div class="nav-item active" onclick="showView('clientes')">
+      <span class="nav-icon">👥</span> Contactos
+    </div>
+    <div class="nav-item" onclick="showView('mapa')">
+      <span class="nav-icon">🗺️</span> Mapa regional
+    </div>
+    <div class="nav-item" onclick="showView('facturas')">
+      <span class="nav-icon">📄</span> Facturas pendientes
+    </div>
+    <div class="nav-item" onclick="abrirPanelNuevo()">
+      <span class="nav-icon">➕</span> Nuevo cliente
+    </div>
+    <div class="sidebar-footer">
+      <div style="font-size:11px;color:#888;margin-bottom:6px">Usuarios conectados</div>
+      <div class="online-row"><span class="dot"></span> Tú (Admin)</div>
+      <div class="online-row"><span class="dot"></span> Usuario 2</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <h1 id="view-title">Contactos y distribuidores</h1>
+      <div class="topbar-right">
+        <button class="btn" onclick="cargarDatos()">🔄 Actualizar</button>
+        <button class="btn btn-primary" onclick="abrirPanelNuevo()">➕ Nuevo cliente</button>
+      </div>
+    </div>
+
+    <!-- VISTA CLIENTES -->
+    <div class="content" id="view-clientes">
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><div class="stat-label">Total clientes</div><div class="stat-value" id="stat-total">—</div><div class="stat-sub">en base de datos</div></div>
+        <div class="stat-card"><div class="stat-label">Clientes A</div><div class="stat-value" id="stat-a" style="color:#3B6D11">—</div><div class="stat-sub">alto volumen</div></div>
+        <div class="stat-card"><div class="stat-label">Facturas pendientes</div><div class="stat-value" id="stat-pend" style="color:#854F0B">—</div><div class="stat-sub" id="stat-pend-sub">clientes</div></div>
+        <div class="stat-card"><div class="stat-label">Venta promedio</div><div class="stat-value" id="stat-avg">—</div><div class="stat-sub">por cliente</div></div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header">
+          <h3>Distribuidores</h3>
+          <span style="font-size:12px;color:#888" id="count-label">cargando...</span>
+        </div>
+        <div class="filters">
+          <input class="search-box" type="text" placeholder="Buscar por nombre, ciudad, región..." id="buscador" oninput="aplicarFiltros()"/>
+          <button class="filter-btn active" data-f="Todos" onclick="setFiltro(this)">Todos</button>
+          <button class="filter-btn" data-f="A" onclick="setFiltro(this)">A</button>
+          <button class="filter-btn" data-f="B" onclick="setFiltro(this)">B</button>
+          <button class="filter-btn" data-f="C" onclick="setFiltro(this)">C</button>
+          <button class="filter-btn" data-f="Cuidado bucal" onclick="setFiltro(this)">Cuidado bucal</button>
+          <button class="filter-btn" data-f="Insumos médicos" onclick="setFiltro(this)">Insumos médicos</button>
+          <button class="filter-btn" data-f="Ambos" onclick="setFiltro(this)">Ambos</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Clase</th>
+                <th>Último pedido</th>
+                <th>Monto</th>
+                <th>Prom. ponderado</th>
+                <th>Último contacto</th>
+                <th>Factura</th>
+                <th>Canal</th>
+                <th>Categoría</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tabla-body">
+              <tr><td colspan="10"><div class="loading"><div class="spinner"></div> Cargando datos...</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTA MAPA -->
+    <div class="content" id="view-mapa" style="display:none">
+      <div class="section-card">
+        <div class="section-header"><h3>Distribuidores por región</h3></div>
+        <div class="mapa-container">
+          <div class="region-grid" id="region-grid">
+            <div class="loading"><div class="spinner"></div> Cargando...</div>
+          </div>
+          <div style="background:#f5f5f3;border-radius:10px;padding:1rem;font-size:12px;color:#888;text-align:center;margin-top:0.5rem">
+            💡 Las regiones se generan automáticamente desde los datos de tus clientes
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTA FACTURAS -->
+    <div class="content" id="view-facturas" style="display:none">
+      <div class="section-card">
+        <div class="section-header">
+          <h3>Facturas pendientes de pago</h3>
+          <span style="font-size:12px;color:#854F0B" id="facturas-count">cargando...</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Ciudad</th>
+                <th>Monto pedido</th>
+                <th>Último pedido</th>
+                <th>Último contacto</th>
+                <th>Nota</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="facturas-body">
+              <tr><td colspan="7"><div class="loading"><div class="spinner"></div> Cargando...</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL LATERAL -->
+<div class="panel-overlay" id="panel-overlay" onclick="if(event.target===this)cerrarPanel()">
+  <div class="panel" id="panel">
+    <div class="panel-title">
+      <span id="panel-titulo">Ficha de cliente</span>
+      <button class="btn" onclick="cerrarPanel()" style="padding:4px 10px">✕</button>
+    </div>
+    <div id="panel-content"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://xfxecfpjcbferwspfbjd.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_SGblMPZe6rBOmuVsk7FeJw_Wp4tq0fS';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let todosClientes = [];
+let filtroActivo = 'Todos';
+let modoEdicion = false;
+let clienteEditandoId = null;
+
+function fmt(n) {
+  if (!n && n !== 0) return '—';
+  return '$' + Number(n).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function iniciales(nombre) {
+  return (nombre || '?').split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+}
+
+function badgeCategoria(cat) {
+  if (cat === 'Ambos') return `<span class="badge badge-ambos">Ambos</span>`;
+  if (cat === 'Insumos médicos') return `<span class="badge badge-insumos">Insumos médicos</span>`;
+  return `<span class="badge badge-bucal">Cuidado bucal</span>`;
+}
+
+function toast(msg, dur = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+async function cargarDatos() {
+  const { data, error } = await db.from('clientes').select('*').order('nombre');
+  if (error) { toast('Error al cargar datos'); console.error(error); return; }
+  todosClientes = data || [];
+  aplicarFiltros();
+  actualizarStats();
+  renderMapa();
+  renderFacturas();
+}
+
+function actualizarStats() {
+  const total = todosClientes.length;
+  const clA = todosClientes.filter(c => c.clase === 'A').length;
+  const pend = todosClientes.filter(c => c.factura === 'Pendiente');
+  const totalPend = pend.reduce((s, c) => s + (Number(c.monto) || 0), 0);
+  const avg = total > 0 ? todosClientes.reduce((s, c) => s + (Number(c.promedio) || 0), 0) / total : 0;
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-a').textContent = clA;
+  document.getElementById('stat-pend').textContent = fmt(totalPend);
+  document.getElementById('stat-pend-sub').textContent = `${pend.length} clientes`;
+  document.getElementById('stat-avg').textContent = fmt(Math.round(avg));
+}
+
+function aplicarFiltros() {
+  const texto = document.getElementById('buscador').value.toLowerCase();
+  let data = todosClientes;
+
+  if (filtroActivo !== 'Todos') {
+    if (['A', 'B', 'C'].includes(filtroActivo)) data = data.filter(c => c.clase === filtroActivo);
+    else data = data.filter(c => c.categoria === filtroActivo);
+  }
+
+  if (texto) data = data.filter(c =>
+    (c.nombre || '').toLowerCase().includes(texto) ||
+    (c.ciudad || '').toLowerCase().includes(texto) ||
+    (c.region || '').toLowerCase().includes(texto) ||
+    (c.canal || '').toLowerCase().includes(texto)
+  );
+
+  renderTabla(data);
+  document.getElementById('count-label').textContent = `${data.length} registros · montos en USD`;
+}
+
+function setFiltro(btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filtroActivo = btn.dataset.f;
+  aplicarFiltros();
+}
+
+function renderTabla(data) {
+  const tbody = document.getElementById('tabla-body');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state">No se encontraron clientes</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(c => `
+    <tr class="data-row" onclick="abrirPanel('${c.id}')">
+      <td>
+        <div style="display:flex;align-items:center">
+          <span class="avatar">${iniciales(c.nombre)}</span>
+          <div>
+            <div class="client-name">${c.nombre || '—'}</div>
+            <div class="client-city">${c.ciudad || '—'} · ${c.region || '—'}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="badge badge-${(c.clase||'c').toLowerCase()}">${c.clase || '—'}</span></td>
+      <td>${c.ultimo_pedido || '—'}</td>
+      <td class="amount">${fmt(c.monto)}</td>
+      <td class="amount" style="color:#888">${fmt(c.promedio)}</td>
+      <td>
+        <div>${c.ultimo_contacto || '—'}</div>
+        <div style="font-size:11px;color:#888">${(c.nota_contacto || '').substring(0, 30)}${(c.nota_contacto||'').length > 30 ? '…' : ''}</div>
+      </td>
+      <td><span class="badge ${c.factura === 'Pendiente' ? 'badge-pend' : 'badge-pag'}">${c.factura || '—'}</span></td>
+      <td><span class="tag">${c.canal || '—'}</span></td>
+      <td>${badgeCategoria(c.categoria)}</td>
+      <td>
+        <button class="btn" style="padding:4px 8px;font-size:12px" onclick="event.stopPropagation();abrirPanel('${c.id}')">Ver</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderMapa() {
+  const regiones = {};
+  todosClientes.forEach(c => {
+    const r = c.region || 'Sin región';
+    if (!regiones[r]) regiones[r] = { count: 0, monto: 0 };
+    regiones[r].count++;
+    regiones[r].monto += Number(c.monto) || 0;
+  });
+
+  const sorted = Object.entries(regiones).sort((a, b) => b[1].count - a[1].count);
+  const grid = document.getElementById('region-grid');
+
+  if (!sorted.length) {
+    grid.innerHTML = '<div class="empty-state">Sin datos de regiones</div>';
+    return;
+  }
+
+  grid.innerHTML = sorted.map(([region, data]) => `
+    <div class="region-card">
+      <div class="region-name">📍 ${region}</div>
+      <div class="region-count">${data.count}</div>
+      <div style="font-size:11px;color:#1D9E75;font-weight:500">distribuidor${data.count !== 1 ? 'es' : ''}</div>
+      <div class="region-monto">Total: ${fmt(data.monto)}</div>
+    </div>
+  `).join('');
+}
+
+function renderFacturas() {
+  const pendientes = todosClientes.filter(c => c.factura === 'Pendiente');
+  document.getElementById('facturas-count').textContent =
+    `${pendientes.length} pendientes · ${fmt(pendientes.reduce((s, c) => s + (Number(c.monto) || 0), 0))} total`;
+
+  const tbody = document.getElementById('facturas-body');
+  if (!pendientes.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">✅ Sin facturas pendientes</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = pendientes.map(c => `
+    <tr>
+      <td><span class="avatar">${iniciales(c.nombre)}</span><strong>${c.nombre}</strong></td>
+      <td>${c.ciudad || '—'}</td>
+      <td class="amount">${fmt(c.monto)}</td>
+      <td>${c.ultimo_pedido || '—'}</td>
+      <td>${c.ultimo_contacto || '—'}</td>
+      <td style="font-size:12px;color:#888;max-width:180px">${(c.nota_contacto || '').substring(0, 40)}…</td>
+      <td><span class="badge badge-pend">Pendiente</span></td>
+    </tr>
+  `).join('');
+}
+
+function abrirPanel(id) {
+  const c = todosClientes.find(x => x.id === id);
+  if (!c) return;
+  modoEdicion = false;
+  clienteEditandoId = id;
+  document.getElementById('panel-titulo').textContent = 'Ficha de cliente';
+  document.getElementById('panel-content').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem">
+      <div class="avatar" style="width:48px;height:48px;font-size:17px">${iniciales(c.nombre)}</div>
+      <div>
+        <div style="font-weight:500;font-size:16px">${c.nombre}</div>
+        <div style="font-size:13px;color:#888">${c.ciudad || ''} · ${c.region || ''}</div>
+      </div>
+      <span class="badge badge-${(c.clase||'c').toLowerCase()}" style="margin-left:auto;font-size:13px;padding:5px 14px">Cliente ${c.clase}</span>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group"><div class="field-label">Teléfono</div><div class="field-value">📞 ${c.telefono || '—'}</div></div>
+      <div class="field-group"><div class="field-label">Canal comercial</div><div class="field-value">${c.canal || '—'}</div></div>
+    </div>
+    <div class="field-row">
+      <div class="field-group"><div class="field-label">Tipo de vendedor</div><div class="field-value">${c.vendedor || '—'}</div></div>
+      <div class="field-group"><div class="field-label">Categoría</div><div class="field-value">${badgeCategoria(c.categoria)}</div></div>
+    </div>
+    <hr class="divider">
+    <div class="field-row">
+      <div class="field-group"><div class="field-label">Último pedido</div><div class="field-value">${c.ultimo_pedido || '—'}</div></div>
+      <div class="field-group"><div class="field-label">Monto del pedido</div><div class="field-value amount" style="font-size:18px">${fmt(c.monto)}</div></div>
+    </div>
+    <div class="field-row">
+      <div class="field-group"><div class="field-label">Promedio ponderado</div><div class="field-value amount">${fmt(c.promedio)}</div></div>
+      <div class="field-group"><div class="field-label">Último despacho</div><div class="field-value">${c.despacho || '—'}</div></div>
+    </div>
+    <div class="field-group"><div class="field-label">Factura</div><div class="field-value"><span class="badge ${c.factura === 'Pendiente' ? 'badge-pend' : 'badge-pag'}">${c.factura || '—'}</span></div></div>
+    <hr class="divider">
+    <div class="field-group"><div class="field-label">Último contacto — ${c.ultimo_contacto || '—'}</div><div class="notes-box">${c.nota_contacto || 'Sin notas'}</div></div>
+    <div class="field-group"><div class="field-label">Descuentos aplicados</div><div class="notes-box">${c.descuento || 'Ninguno'}</div></div>
+    <hr class="divider">
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1" onclick="abrirFormulario('${c.id}')">✏️ Editar cliente</button>
+      <button class="btn btn-danger" onclick="eliminarCliente('${c.id}')">🗑️ Eliminar</button>
+    </div>
+  `;
+  document.getElementById('panel-overlay').classList.add('open');
+}
+
+function abrirPanelNuevo() {
+  clienteEditandoId = null;
+  abrirFormulario(null);
+}
+
+function abrirFormulario(id) {
+  const c = id ? todosClientes.find(x => x.id === id) : {};
+  document.getElementById('panel-titulo').textContent = id ? 'Editar cliente' : 'Nuevo cliente';
+  document.getElementById('panel-content').innerHTML = `
+    <div class="form-row">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Nombre *</label>
+        <input class="form-input" id="f-nombre" value="${c.nombre || ''}" placeholder="Nombre del distribuidor">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Ciudad</label><input class="form-input" id="f-ciudad" value="${c.ciudad || ''}" placeholder="Caracas"></div>
+      <div class="form-group"><label>Región</label><input class="form-input" id="f-region" value="${c.region || ''}" placeholder="Capital"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Clasificación</label>
+        <select class="form-input" id="f-clase">
+          <option value="A" ${c.clase==='A'?'selected':''}>A — Alto volumen</option>
+          <option value="B" ${c.clase==='B'?'selected':''}>B — Medio</option>
+          <option value="C" ${c.clase==='C'?'selected':''}>C — Bajo volumen</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Teléfono</label><input class="form-input" id="f-telefono" value="${c.telefono || ''}" placeholder="+58 412-000-0000"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Último pedido</label><input class="form-input" type="date" id="f-ultimo-pedido" value="${c.ultimo_pedido || ''}"></div>
+      <div class="form-group"><label>Monto pedido ($)</label><input class="form-input" type="number" id="f-monto" value="${c.monto || ''}" placeholder="0.00"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Promedio ponderado ($)</label><input class="form-input" type="number" id="f-promedio" value="${c.promedio || ''}" placeholder="0.00"></div>
+      <div class="form-group"><label>Último despacho</label><input class="form-input" type="date" id="f-despacho" value="${c.despacho || ''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Último contacto</label><input class="form-input" type="date" id="f-ultimo-contacto" value="${c.ultimo_contacto || ''}"></div>
+      <div class="form-group">
+        <label>Estado factura</label>
+        <select class="form-input" id="f-factura">
+          <option value="Pendiente" ${c.factura==='Pendiente'?'selected':''}>Pendiente</option>
+          <option value="Pagada" ${c.factura==='Pagada'?'selected':''}>Pagada</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Canal comercial</label>
+        <select class="form-input" id="f-canal">
+          <option value="Televenta" ${c.canal==='Televenta'?'selected':''}>Televenta</option>
+          <option value="Vendedor de calle" ${c.canal==='Vendedor de calle'?'selected':''}>Vendedor de calle</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Tipo vendedor</label>
+        <select class="form-input" id="f-vendedor">
+          <option value="Directo" ${c.vendedor==='Directo'?'selected':''}>Directo</option>
+          <option value="Externo" ${c.vendedor==='Externo'?'selected':''}>Externo</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Categoría de productos</label>
+      <select class="form-input" id="f-categoria">
+        <option value="Cuidado bucal" ${c.categoria==='Cuidado bucal'?'selected':''}>Cuidado bucal</option>
+        <option value="Insumos médicos" ${c.categoria==='Insumos médicos'?'selected':''}>Insumos médicos</option>
+        <option value="Ambos" ${c.categoria==='Ambos'?'selected':''}>Ambos</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Nota del último contacto</label>
+      <textarea class="form-input" id="f-nota">${c.nota_contacto || ''}</textarea>
+    </div>
+    <div class="form-group">
+      <label>Descuentos aplicados</label>
+      <input class="form-input" id="f-descuento" value="${c.descuento || ''}" placeholder="Ej: 5% por volumen">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:1rem">
+      <button class="btn btn-primary" style="flex:1" onclick="guardarCliente('${id || ''}')">💾 Guardar</button>
+      <button class="btn" onclick="${id ? `abrirPanel('${id}')` : 'cerrarPanel()'}">Cancelar</button>
+    </div>
+  `;
+  document.getElementById('panel-overlay').classList.add('open');
+}
+
+async function guardarCliente(id) {
+  const datos = {
+    nombre: document.getElementById('f-nombre').value.trim(),
+    ciudad: document.getElementById('f-ciudad').value.trim(),
+    region: document.getElementById('f-region').value.trim(),
+    clase: document.getElementById('f-clase').value,
+    telefono: document.getElementById('f-telefono').value.trim(),
+    ultimo_pedido: document.getElementById('f-ultimo-pedido').value || null,
+    monto: parseFloat(document.getElementById('f-monto').value) || 0,
+    promedio: parseFloat(document.getElementById('f-promedio').value) || 0,
+    ultimo_contacto: document.getElementById('f-ultimo-contacto').value || null,
+    factura: document.getElementById('f-factura').value,
+    despacho: document.getElementById('f-despacho').value || null,
+    canal: document.getElementById('f-canal').value,
+    vendedor: document.getElementById('f-vendedor').value,
+    categoria: document.getElementById('f-categoria').value,
+    nota_contacto: document.getElementById('f-nota').value.trim(),
+    descuento: document.getElementById('f-descuento').value.trim(),
+  };
+
+  if (!datos.nombre) { toast('El nombre es obligatorio'); return; }
+
+  let error;
+  if (id) {
+    ({ error } = await db.from('clientes').update(datos).eq('id', id));
+  } else {
+    ({ error } = await db.from('clientes').insert([datos]));
+  }
+
+  if (error) { toast('Error al guardar: ' + error.message); return; }
+  toast(id ? '✅ Cliente actualizado' : '✅ Cliente creado');
+  cerrarPanel();
+  await cargarDatos();
+}
+
+async function eliminarCliente(id) {
+  if (!confirm('¿Eliminar este cliente? Esta acción no se puede deshacer.')) return;
+  const { error } = await db.from('clientes').delete().eq('id', id);
+  if (error) { toast('Error al eliminar'); return; }
+  toast('🗑️ Cliente eliminado');
+  cerrarPanel();
+  await cargarDatos();
+}
+
+function cerrarPanel() {
+  document.getElementById('panel-overlay').classList.remove('open');
+}
+
+function showView(v) {
+  ['clientes', 'mapa', 'facturas'].forEach(x => {
+    document.getElementById('view-' + x).style.display = x === v ? 'block' : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navItems = document.querySelectorAll('.nav-item');
+  const idx = ['clientes', 'mapa', 'facturas'].indexOf(v);
+  if (navItems[idx]) navItems[idx].classList.add('active');
+  const titles = { clientes: 'Contactos y distribuidores', mapa: 'Mapa regional de Venezuela', facturas: 'Facturas pendientes' };
+  document.getElementById('view-title').textContent = titles[v];
+  if (v === 'mapa') renderMapa();
+  if (v === 'facturas') renderFacturas();
+}
+
+// Actualización en tiempo real
+db.channel('clientes-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, () => {
+    cargarDatos();
+    toast('🔄 Datos actualizados');
+  })
+  .subscribe();
+
+// Cargar al iniciar
+cargarDatos();
+</script>
+</body>
+</html>
